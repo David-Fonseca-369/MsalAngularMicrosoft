@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject } from '@angular/core';
 import { throwToolbarMixedModesError } from '@angular/material/toolbar';
-import {MsalService, MsalBroadcastService} from '@azure/msal-angular';
-import {InteractionStatus} from '@azure/msal-browser';
+import {MsalService, MsalBroadcastService, MSAL_GUARD_CONFIG, MsalGuardConfiguration} from '@azure/msal-angular';
+import {InteractionStatus, RedirectRequest} from '@azure/msal-browser';
 import {Subject} from 'rxjs';
 import {filter, takeUntil} from 'rxjs/operators'
 
@@ -17,9 +17,11 @@ export class AppComponent implements OnInit, OnDestroy{
   loginDisplay = false;
   private readonly _destroying$ = new Subject<void>();
 
-  constructor(private authService : MsalService, private broadcastService : MsalBroadcastService) { }
+  constructor(private authService : MsalService, private broadcastService : MsalBroadcastService, 
+    @Inject(MSAL_GUARD_CONFIG) private msalGuardConfig : MsalGuardConfiguration) { }
 
   ngOnInit(): void {
+
     this.isIframe = window !== window.parent && !window.opener;
 
     this.broadcastService.inProgress$
@@ -33,7 +35,17 @@ export class AppComponent implements OnInit, OnDestroy{
   }
 
   login(){
-      this.authService.loginRedirect();
+      if(this.msalGuardConfig.authRequest){
+        this.authService.loginRedirect({...this.msalGuardConfig.authRequest} as RedirectRequest);
+      }else{
+        this.authService.loginRedirect();
+      }
+  }
+
+  logout(){
+    this.authService.logoutRedirect({
+      postLogoutRedirectUri: 'http://localhost:4200'
+    })
   }
 
 
